@@ -30,7 +30,7 @@ void setup(){
   delay(10);
 
   
-  //arm the Escs
+  // arm the Escs
   rightMotor.write(40);
   leftMotor.write(40);
   delay(1000);
@@ -39,14 +39,14 @@ void setup(){
   delay(2000);
 
   
-  //set up i2c
+  // set up i2c
   Wire.begin();
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x6B);  // PWR_MGMT_1 register
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
 
-  //serial begin
+  // serial begin
   Serial.begin(115200);
 }
 
@@ -54,7 +54,7 @@ void setup(){
 void loop(){
   int pidOut = 0;
   
-  //I2c the data from the MPU6050
+  // I2c the data from the MPU6050
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -68,7 +68,7 @@ void loop(){
   GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
   /*
-  //output the mpu6050 values
+  // output the mpu6050 values
   Serial.print("AcX = "); Serial.print(AcX);
   Serial.print(" | AcY = "); Serial.print(AcY);
   Serial.print(" | AcZ = "); Serial.println(AcZ);
@@ -78,20 +78,20 @@ void loop(){
   Serial.print(" | GyZ = "); Serial.println(GyZ);
   */
 
-  //bring the data in line with real world values
+  // bring the data in line with real world values
   float AccY = (float)AcY/(float)16500;
   float AccZ = (float)AcZ/(float)16500;
   float gyroDpS = (GyX/131)*-1;
 
     
   accAngle = atan2(AccY, AccZ*-1) * 180/M_PI;    // get accelerometer view of data
-  //float smoothed = average(accAngle); accAngle = smoothed;   // get smoothed acc values
+  // float smoothed = average(accAngle); accAngle = smoothed;   // get smoothed acc values
   
-  gyroInt += 2*(gyroDpS*dt);                     //gyro integrated view
-  filteredAngle = 0.995 * (filteredAngle + 1.5*(gyroDpS *dt)) + (0.005 * accAngle); //filtered view (why 1.5? no idea just seemed needed to make it work)
+  gyroInt += 2*(gyroDpS*dt);                     // gyro integrated view
+  filteredAngle = 0.995 * (filteredAngle + 1.5*(gyroDpS *dt)) + (0.005 * accAngle); //filtered view (1.5 value works well)
 
-  pidOut = PID(filteredAngle);                   //get pid output for comp filter input
-  pidOut = constrain(pidOut, -79, 79);           //stop it going past the 180 servo library
+  pidOut = PID(filteredAngle);                   // get pid output for comp filter input
+  pidOut = constrain(pidOut, -79, 79);           // stop it going past the 180 servo library
   
   leftMotor.write(throttle + (int)pidOut);
   rightMotor.write(throttle - (int)pidOut); 
@@ -100,7 +100,7 @@ void loop(){
 
 
 int PID(float currentAngle){
-  //set local variables (success with, P = 782, I = 611 , D = 152)
+  // set local variables (success with, P = 782, I = 611 , D = 152)
   int Pgain = 782, Igain = 611, Dgain = 152, setPoint = 0, windupLimit = 50;
   float Pout, Iout, Dout;
   
@@ -108,22 +108,22 @@ int PID(float currentAngle){
   Igain = map(analogRead(analogInPin1), 0, 1023, 0, 2000);
   Dgain = map(analogRead(analogInPin2), 0, 1023, 0, 2000);
 
-  //print the pid gain levels
-  //Serial.print("P "); Serial.print(Pgain); Serial.print("\t I "); Serial.print(Igain); Serial.print("\t D "); Serial.println(Dgain); //Serial.println("");
+  // print the pid gain levels
+  // Serial.print("P "); Serial.print(Pgain); Serial.print("\t I "); Serial.print(Igain); Serial.print("\t D "); Serial.println(Dgain); //Serial.println("");
   
   
-  //calculate PID
+  // calculate PID
   Pout = currentAngle - setPoint;
   Pbuffer += Pout*dt;
   Iout = Pbuffer;
   Dout = ((Pout - lastPout)/dt);
   lastPout = Pout;
 
-  //anti windup code
+  // anti windup code
   if(Pbuffer > windupLimit)         { Pbuffer = windupLimit;} 
   else if(Pbuffer < windupLimit*-1) { Pbuffer = windupLimit*-1;}
   else                              { Pbuffer = Pbuffer;}
-  //Integral anti-overshoot code
+  // Integral anti-overshoot code
   if(currentAngle >= -0.3 && currentAngle <= 0.3) { Pbuffer = 0; }
 
   float reducer = 0.001;
@@ -137,13 +137,13 @@ int PID(float currentAngle){
   float PIDOutput = (Pout *Pgain) + (Iout *Igain) + (Dout *Dgain);
   int PIDOutput2 = (int)PIDOutput;
 
-  //send information to processing
+  // send information to processing
   String stringAngle = (String)filteredAngle;
   String stringPerror = (String)(Pout *Pgain);
   String stringIerror = (String)(Iout *Igain);
   String stringDerror = (String)(Dout *Dgain);
   Serial.println(stringAngle + "A" + stringPerror + "B" + stringIerror + "C" + stringDerror + "D");
-  //Serial.println(filteredAngle);
+  // Serial.println(filteredAngle);
   
   return PIDOutput2;
 }
@@ -153,13 +153,13 @@ float average(float acc){
   float averageBuff = 0;
   int sizeofBuffer = sizeof(bufferCircle)/sizeof(float);
 
-  //update position
+  // update position
   if(bufferPosition <= sizeofBuffer) { bufferPosition++; } 
   else{ bufferPosition = 0; }
 
   bufferCircle[bufferPosition] = acc;
 
-  //sum the buffer
+  // sum the buffer
   for (int i = 0; i < sizeofBuffer; i++) {
     averageBuff += bufferCircle[i];
   }
